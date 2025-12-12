@@ -58,17 +58,42 @@ export const OPTIONS: Record<CategoryKey, OptionItem[]> = {
     { value: 'Observing closely', label: '자세히 들여다보기' },
     { value: 'Interacting with another person', label: '다른 인물과 상호작용' },
   ],
-  characters: [
-    { value: 'Single student', label: '학생 1명' },
-    { value: 'Two students discussing', label: '두 학생 토론 장면' },
-    { value: 'Small group (3–4 students)', label: '소그룹 학생 3–4명' },
-    { value: 'Teacher explaining', label: '선생님 설명 장면' },
-    { value: 'Child observing', label: '어린이가 관찰하는 장면' },
-    { value: 'Mixed children group', label: '다양한 아이들 구성' },
-    { value: 'Adult professional', label: '성인 전문가' },
-    { value: 'Parent–child pair', label: '부모+아이 구성' },
-    { value: 'Neutral expressions', label: '중립적 표정' },
-    { value: 'Expressive emotions', label: '감정 표현 뚜렷' },
+  // New Character Fields
+  charAge: [
+    { label: '신생아', value: 'a newborn baby' },
+    { label: '유아', value: 'a toddler' },
+    { label: '어린이', value: 'a young child' },
+    { label: '유치원생', value: 'a kindergarten child' },
+    { label: '초등학생저학년', value: 'a lower grade elementary school student' },
+    { label: '초등학생고학년', value: 'an upper grade elementary school student' },
+    { label: '중학생', value: 'a middle school student' },
+    { label: '고등학생', value: 'a high school student' },
+    { label: '대학생', value: 'a college student' },
+    { label: '직장인', value: 'an office worker' },
+    { label: '20대', value: 'a person in their twenties' },
+    { label: '30대', value: 'a person in their thirties' },
+    { label: '40대', value: 'a person in their forties' },
+    { label: '50대', value: 'a person in their fifties' },
+    { label: '60대', value: 'a person in their sixties' },
+    { label: '노인', value: 'an elderly person' }
+  ],
+  charNation: [
+    { label: '한국', value: 'Korean' },
+    { label: '동양인', value: 'East Asian person' },
+    { label: '서양인', value: 'Western person' },
+    { label: '흑인', value: 'Black person' },
+    { label: '백인', value: 'White person' },
+    { label: '황인종', value: 'East Asian person' }
+  ],
+  charGender: [
+    { label: '여자', value: 'female' },
+    { label: '남자', value: 'male' }
+  ],
+  charOutfit: [
+    { label: '사복', value: 'casual clothes' },
+    { label: '교복', value: 'a school uniform' },
+    { label: '유니폼', value: 'a uniform' }
+    // '직접입력' is handled by the custom input logic in App.tsx
   ],
   environment: [
     { value: 'Modern classroom', label: '현대적인 교실 배경' },
@@ -132,7 +157,6 @@ export const OPTIONS: Record<CategoryKey, OptionItem[]> = {
   ]
 };
 
-// Additional hardcoded helper for "Scene" and "Duration" which aren't dropdowns
 export const DEFAULTS = {
     duration: '5',
     fps: '24',

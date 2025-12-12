@@ -11,7 +11,12 @@ import {
   Type,
   User,
   AlertOctagon,
-  Sparkles
+  Sparkles,
+  Layout,
+  MousePointerClick,
+  Shirt,
+  Globe,
+  Baby
 } from 'lucide-react';
 
 import { MODELS, OPTIONS, DEFAULTS } from './constants';
@@ -19,7 +24,10 @@ import { FormState, ModelType, CategoryKey } from './types';
 import { buildPrompt } from './utils';
 import { PromptPreview } from './components/PromptPreview';
 
+type SelectionCategory = 'common' | 'specific';
+
 const App: React.FC = () => {
+  const [modelCategory, setModelCategory] = useState<SelectionCategory>('common');
   const [mode, setMode] = useState<ModelType>('common');
   
   // Stores the *English* values (or 'custom')
@@ -48,6 +56,18 @@ const App: React.FC = () => {
     setCustomInputs((prev) => ({ ...prev, [key]: text }));
   };
 
+  const handleCategoryChange = (cat: SelectionCategory) => {
+    setModelCategory(cat);
+    if (cat === 'common') {
+      setMode('common');
+    } else {
+      // Default to Sora if switching to Specific and currently on Common
+      if (mode === 'common') {
+        setMode('sora');
+      }
+    }
+  };
+
   // Combine standard values and custom inputs for the prompt builder
   const finalValues = useMemo(() => {
     const combined: FormState = { ...formValues };
@@ -61,19 +81,24 @@ const App: React.FC = () => {
 
   const generatedPrompt = useMemo(() => buildPrompt(mode, finalValues), [mode, finalValues]);
 
+  // UI Helpers for Model Selection
+  const specificModels = MODELS.filter(m => m.id !== 'common');
+  const currentModelInfo = MODELS.find(m => m.id === mode);
+
   const renderSelect = (
     label: string, 
     fieldKey: CategoryKey, 
     icon: React.ReactNode, 
-    placeholder: string = "선택하세요"
+    placeholder: string = "선택하세요",
+    compact: boolean = false
   ) => {
     const options = OPTIONS[fieldKey];
     const currentValue = formValues[fieldKey] || '';
     const isCustom = currentValue === 'custom';
 
     return (
-      <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-        <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+      <div className={`bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow ${compact ? 'p-3' : 'p-4'}`}>
+        <label className={`block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2 ${compact ? 'text-xs' : ''}`}>
           <span className="text-indigo-600">{icon}</span>
           {label}
         </label>
@@ -84,12 +109,12 @@ const App: React.FC = () => {
           className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 mb-2"
         >
           <option value="">-- {placeholder} --</option>
-          {options.map((opt, idx) => (
+          {options?.map((opt, idx) => (
             <option key={idx} value={opt.value}>
               {opt.label}
             </option>
           ))}
-          <option value="custom" className="font-semibold text-indigo-700">✨ 기타 (직접 입력)</option>
+          <option value="custom" className="font-semibold text-indigo-700">✨ 직접 입력</option>
         </select>
 
         {isCustom && (
@@ -97,7 +122,7 @@ const App: React.FC = () => {
             type="text"
             value={customInputs[fieldKey] || ''}
             onChange={(e) => handleCustomInputChange(fieldKey, e.target.value)}
-            placeholder="영문으로 프롬프트를 입력하세요..."
+            placeholder="영문으로 입력하세요 (예: a tall person)..."
             className="w-full p-2 text-sm border-2 border-indigo-100 rounded-md focus:border-indigo-500 focus:outline-none bg-indigo-50/30"
             autoFocus
           />
@@ -137,7 +162,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-4 text-xs text-slate-400 font-medium">
-             <span>v1.0.0</span>
+             <span>v1.1.0</span>
              <span>Powered by React</span>
           </div>
         </div>
@@ -145,30 +170,76 @@ const App: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Model Selection Tabs */}
+        {/* Model Selection Area */}
         <div className="mb-8">
           <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Settings2 className="text-slate-500" size={20} />
             AI 모델 선택
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {MODELS.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 h-full ${
-                  mode === m.id
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-md transform scale-105'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-slate-50'
-                }`}
-              >
-                <span className="font-bold text-sm mb-1">{m.name}</span>
-                <span className={`text-[10px] text-center leading-tight ${mode === m.id ? 'text-indigo-100' : 'text-slate-400'}`}>
-                  {m.description.split(',')[0]}
-                </span>
-              </button>
-            ))}
+          
+          {/* Main Category Buttons */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <button
+              onClick={() => handleCategoryChange('common')}
+              className={`flex items-center justify-center gap-3 p-5 rounded-xl border-2 transition-all duration-200 group ${
+                modelCategory === 'common'
+                  ? 'bg-white border-indigo-600 shadow-lg ring-1 ring-indigo-600/20'
+                  : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${modelCategory === 'common' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
+                <Layout size={24} />
+              </div>
+              <div className="text-left">
+                <div className={`font-bold text-lg ${modelCategory === 'common' ? 'text-indigo-700' : 'text-slate-700'}`}>공통 모드 (Common)</div>
+                <div className="text-xs text-slate-500">모든 모델에 안정적인 범용 구조</div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleCategoryChange('specific')}
+              className={`flex items-center justify-center gap-3 p-5 rounded-xl border-2 transition-all duration-200 group ${
+                modelCategory === 'specific'
+                  ? 'bg-white border-indigo-600 shadow-lg ring-1 ring-indigo-600/20'
+                  : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${modelCategory === 'specific' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600'}`}>
+                <MousePointerClick size={24} />
+              </div>
+              <div className="text-left">
+                <div className={`font-bold text-lg ${modelCategory === 'specific' ? 'text-indigo-700' : 'text-slate-700'}`}>모델 전용 (Specific)</div>
+                <div className="text-xs text-slate-500">Sora, Runway, Kling 등 전용 최적화</div>
+              </div>
+            </button>
           </div>
+
+          {/* Specific Model Options (Visible only when in Specific category) */}
+          {modelCategory === 'specific' && (
+            <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
+              <div className="flex flex-wrap gap-2 justify-center mb-3">
+                {specificModels.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setMode(m.id)}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 border ${
+                      mode === m.id
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+              <div className="text-center">
+                 <p className="text-sm text-slate-600">
+                   <span className="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-2"></span>
+                   {currentModelInfo?.description}
+                 </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -186,13 +257,26 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* 2. Content & Action */}
+            {/* 2. Character Detail Builder */}
             <section>
-              <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-l-4 border-rose-500 pl-3">Subject & Action</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {renderSelect('Characters (인물)', 'characters', <User size={16} />)}
+              <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-l-4 border-emerald-500 pl-3">Character Details</h3>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                   {renderSelect('나이/직업 (Age)', 'charAge', <Baby size={16} />, '선택', true)}
+                   {renderSelect('국적/인종 (Nation)', 'charNation', <Globe size={16} />, '선택', true)}
+                   {renderSelect('성별 (Gender)', 'charGender', <User size={16} />, '선택', true)}
+                   {renderSelect('복장 (Outfit)', 'charOutfit', <Shirt size={16} />, '선택', true)}
+                </div>
+                <p className="text-xs text-slate-400 text-center">
+                   * 자동으로 "a [age] [nation] [gender] wearing [outfit]" 문장이 생성됩니다.
+                </p>
+              </div>
+              
+              <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-l-4 border-emerald-500 pl-3">Action & Context</h3>
+              <div className="grid grid-cols-1 gap-4">
                  {renderSelect('Action (행동)', 'action', <Clapperboard size={16} />)}
               </div>
+              
               {/* Optional Scene Description for context */}
               <div className="mt-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                  <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
@@ -241,7 +325,7 @@ const App: React.FC = () => {
           <div className="lg:col-span-5">
             <PromptPreview 
                 prompt={generatedPrompt} 
-                modeName={MODELS.find(m => m.id === mode)?.name || 'Unknown'} 
+                modeName={currentModelInfo?.name || 'Unknown'} 
             />
           </div>
 
