@@ -1,0 +1,5 @@
+{
+  "name": "AI Video Prompt Builder",
+  "description": "A specialized prompt generator for AI Video models like Sora, Runway, Kling, Veo, and Pika.",
+  "requestFramePermissions": []
+}
