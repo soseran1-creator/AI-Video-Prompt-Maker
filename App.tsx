@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Video, 
@@ -16,11 +17,14 @@ import {
   MousePointerClick,
   Shirt,
   Globe,
-  Baby
+  Baby,
+  Plus,
+  Trash2,
+  Users
 } from 'lucide-react';
 
 import { MODELS, OPTIONS, DEFAULTS } from './constants';
-import { FormState, ModelType, CategoryKey } from './types';
+import { FormState, ModelType, CategoryKey, Character } from './types';
 import { buildPrompt } from './utils';
 import { PromptPreview } from './components/PromptPreview';
 
@@ -30,19 +34,25 @@ const App: React.FC = () => {
   const [modelCategory, setModelCategory] = useState<SelectionCategory>('common');
   const [mode, setMode] = useState<ModelType>('common');
   
-  // Stores the *English* values (or 'custom')
+  // General form values
   const [formValues, setFormValues] = useState<FormState>({
     duration: DEFAULTS.duration,
     fps: DEFAULTS.fps,
     ratio: DEFAULTS.ratio,
   });
 
-  // Stores the raw text typed into "Other" fields
+  // General custom inputs
   const [customInputs, setCustomInputs] = useState<FormState>({});
+
+  // Multi-character state
+  const [characters, setCharacters] = useState<Character[]>([
+    { id: '1', age: '', nation: '', gender: '', outfit: '', action: '' }
+  ]);
+
+  // --- General Form Handlers ---
 
   const handleSelectChange = (key: string, value: string) => {
     setFormValues((prev) => ({ ...prev, [key]: value }));
-    // If switching away from custom, clear the custom input for cleanliness (optional)
     if (value !== 'custom') {
       setCustomInputs((prev) => {
         const next = { ...prev };
@@ -61,14 +71,41 @@ const App: React.FC = () => {
     if (cat === 'common') {
       setMode('common');
     } else {
-      // Default to Sora if switching to Specific and currently on Common
       if (mode === 'common') {
         setMode('sora');
       }
     }
   };
 
-  // Combine standard values and custom inputs for the prompt builder
+  // --- Character Logic ---
+
+  const addCharacter = () => {
+    setCharacters(prev => [
+      ...prev,
+      { 
+        id: Date.now().toString(), 
+        age: '', 
+        nation: '', 
+        gender: '', 
+        outfit: '', 
+        action: '' 
+      }
+    ]);
+  };
+
+  const removeCharacter = (id: string) => {
+    setCharacters(prev => prev.filter(c => c.id !== id));
+  };
+
+  const updateCharacter = (id: string, field: keyof Character, value: string) => {
+    setCharacters(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      return { ...c, [field]: value };
+    }));
+  };
+
+  // --- Prompt Assembly ---
+
   const finalValues = useMemo(() => {
     const combined: FormState = { ...formValues };
     Object.keys(combined).forEach((key) => {
@@ -79,9 +116,10 @@ const App: React.FC = () => {
     return combined;
   }, [formValues, customInputs]);
 
-  const generatedPrompt = useMemo(() => buildPrompt(mode, finalValues), [mode, finalValues]);
+  const generatedPrompt = useMemo(() => buildPrompt(mode, finalValues, characters), [mode, finalValues, characters]);
 
-  // UI Helpers for Model Selection
+  // --- UI Render Helpers ---
+
   const specificModels = MODELS.filter(m => m.id !== 'common');
   const currentModelInfo = MODELS.find(m => m.id === mode);
 
@@ -122,9 +160,58 @@ const App: React.FC = () => {
             type="text"
             value={customInputs[fieldKey] || ''}
             onChange={(e) => handleCustomInputChange(fieldKey, e.target.value)}
-            placeholder="영문으로 입력하세요 (예: a tall person)..."
+            placeholder="영문 입력 (e.g., cinematic shot)..."
             className="w-full p-2 text-sm border-2 border-indigo-100 rounded-md focus:border-indigo-500 focus:outline-none bg-indigo-50/30"
             autoFocus
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Helper for rendering inputs inside the Character Card
+  const renderCharSelect = (
+    charId: string,
+    field: keyof Character, 
+    optionsKey: CategoryKey, 
+    label: string, 
+    icon: React.ReactNode,
+    placeholder: string = "선택"
+  ) => {
+    const char = characters.find(c => c.id === charId);
+    if (!char) return null;
+
+    const value = char[field] as string;
+    const options = OPTIONS[optionsKey];
+    const isCustom = value === 'custom';
+    
+    // Determine which custom field key to use (e.g., customAge, customAction)
+    const customFieldKey = `custom${field.charAt(0).toUpperCase() + field.slice(1)}` as keyof Character;
+    const customValue = (char[customFieldKey] as string) || '';
+
+    return (
+      <div className="flex-1 min-w-[140px]">
+        <label className="block text-xs font-semibold text-slate-500 mb-1 flex items-center gap-1">
+          {icon} {label}
+        </label>
+        <select
+          value={value}
+          onChange={(e) => updateCharacter(charId, field, e.target.value)}
+          className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-md focus:ring-emerald-500 focus:border-emerald-500 block p-2 mb-1"
+        >
+          <option value="">- {placeholder} -</option>
+          {options?.map((opt, idx) => (
+            <option key={idx} value={opt.value}>{opt.label}</option>
+          ))}
+          <option value="custom" className="font-bold text-emerald-600">✨ 직접 입력</option>
+        </select>
+        {isCustom && (
+          <input
+            type="text"
+            value={customValue}
+            onChange={(e) => updateCharacter(charId, customFieldKey, e.target.value)}
+            placeholder="영문 묘사..."
+            className="w-full p-1.5 text-xs border border-emerald-200 rounded focus:border-emerald-500 focus:outline-none bg-emerald-50/30"
           />
         )}
       </div>
@@ -162,7 +249,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-4 text-xs text-slate-400 font-medium">
-             <span>v1.1.0</span>
+             <span>v1.2.0</span>
              <span>Powered by React</span>
           </div>
         </div>
@@ -214,7 +301,7 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Specific Model Options (Visible only when in Specific category) */}
+          {/* Specific Model Options */}
           {modelCategory === 'specific' && (
             <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
               <div className="flex flex-wrap gap-2 justify-center mb-3">
@@ -257,39 +344,70 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* 2. Character Detail Builder */}
+            {/* 2. Character Detail Builder (Multi-Character) */}
             <section>
-              <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-l-4 border-emerald-500 pl-3">Character Details</h3>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                   {renderSelect('나이/직업 (Age)', 'charAge', <Baby size={16} />, '선택', true)}
-                   {renderSelect('국적/인종 (Nation)', 'charNation', <Globe size={16} />, '선택', true)}
-                   {renderSelect('성별 (Gender)', 'charGender', <User size={16} />, '선택', true)}
-                   {renderSelect('복장 (Outfit)', 'charOutfit', <Shirt size={16} />, '선택', true)}
-                </div>
-                <p className="text-xs text-slate-400 text-center">
-                   * 자동으로 "a [age] [nation] [gender] wearing [outfit]" 문장이 생성됩니다.
-                </p>
+              <div className="flex items-center justify-between mb-3 border-l-4 border-emerald-500 pl-3">
+                <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold">Characters & Actions</h3>
+                <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                  {characters.length} Person{characters.length !== 1 && 's'}
+                </span>
               </div>
               
-              <h3 className="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3 border-l-4 border-emerald-500 pl-3">Action & Context</h3>
-              <div className="grid grid-cols-1 gap-4">
-                 {renderSelect('Action (행동)', 'action', <Clapperboard size={16} />)}
+              <div className="space-y-4">
+                {characters.map((char, index) => (
+                  <div key={char.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group transition-all hover:border-emerald-300 hover:shadow-sm">
+                    {/* Header for card */}
+                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+                       <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1">
+                         <User size={12} /> Character #{index + 1}
+                       </span>
+                       {characters.length > 1 && (
+                         <button 
+                           onClick={() => removeCharacter(char.id)}
+                           className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                           title="Remove Character"
+                         >
+                           <Trash2 size={14} />
+                         </button>
+                       )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      {renderCharSelect(char.id, 'age', 'charAge', '나이/직업', <Baby size={12} />)}
+                      {renderCharSelect(char.id, 'nation', 'charNation', '국적/인종', <Globe size={12} />)}
+                      {renderCharSelect(char.id, 'gender', 'charGender', '성별', <User size={12} />)}
+                      {renderCharSelect(char.id, 'outfit', 'charOutfit', '복장', <Shirt size={12} />)}
+                    </div>
+
+                    {/* Action - Moved inside Character Card */}
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                       {renderCharSelect(char.id, 'action', 'action', 'Action (행동)', <Clapperboard size={12} />)}
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  onClick={addCharacter}
+                  className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 font-medium text-sm"
+                >
+                  <Plus size={16} />
+                  캐릭터 추가 (Add Character)
+                </button>
               </div>
-              
+
               {/* Optional Scene Description for context */}
-              <div className="mt-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+              <div className="mt-6 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                  <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                    <Type size={16} className="text-indigo-600"/> Scene Context (Optional)
+                    <Type size={16} className="text-indigo-600"/> Scene Context / Interaction (Optional)
                  </label>
                  <textarea
                     rows={2}
-                    placeholder="전반적인 상황 묘사 (ex: A busy street in Seoul during rain...)"
+                    placeholder="전반적인 상황 묘사 또는 캐릭터 간의 관계 (ex: They are studying together in the library...)"
                     value={formValues['customScene'] || ''}
                     onChange={(e) => handleSelectChange('customScene', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 rounded-md p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
                  />
-                 <p className="text-xs text-slate-400 mt-1">Some models use this as the main prompt header.</p>
+                 <p className="text-xs text-slate-400 mt-1">If empty, only character descriptions will be used.</p>
               </div>
             </section>
 

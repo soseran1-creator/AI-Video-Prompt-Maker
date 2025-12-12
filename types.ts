@@ -1,3 +1,4 @@
+
 export interface OptionItem {
   value: string;
   label: string;
@@ -7,7 +8,7 @@ export type CategoryKey =
   | 'shotType'
   | 'cameraMovement'
   | 'framing'
-  | 'action'
+  | 'action' // Kept for generic lookups, though used per-char now
   | 'charAge'
   | 'charNation'
   | 'charGender'
@@ -20,6 +21,21 @@ export type CategoryKey =
 
 export interface FormState {
   [key: string]: string;
+}
+
+export interface Character {
+  id: string;
+  age: string;
+  nation: string;
+  gender: string;
+  outfit: string;
+  action: string;
+  // Storage for custom text inputs per field
+  customAge?: string;
+  customNation?: string;
+  customGender?: string;
+  customOutfit?: string;
+  customAction?: string;
 }
 
 export type ModelType = 'common' | 'sora' | 'runway' | 'kling' | 'veo' | 'pika';
